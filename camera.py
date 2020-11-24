@@ -152,6 +152,7 @@ class LineFollowerCamera():
         self.crop_right = crop_right
         self.crop_top = crop_top
         self.crop_bottom = crop_bottom
+        self.middle_point = int((crop_right-crop_left)/2)
         self.DISPLAY_WIDTH=640
         self.DISPLAY_HEIGHT=360
         self.SENSOR_MODE_720=3
@@ -183,6 +184,9 @@ class LineFollowerCamera():
             SystemExit(0)
         else:
             print("Camera ready...")
+
+    def return_middle_point(self):
+        return self.middle_point
 
     def plot_fps(self, img):
         if self.counting_fps is True:
@@ -252,6 +256,8 @@ class LineFollowerCamera():
         oryginal = img.copy()
         cv2.line(oryginal, (self.crop_left, self.crop_top), (self.crop_right, self.crop_top), (0, 0, 255), 1)
         cv2.line(oryginal, (self.crop_left, self.crop_bottom), (self.crop_right, self.crop_bottom), (0, 0, 255), 1)
+        cv2.line(oryginal, (self.middle_point, self.crop_top), (self.middle_point, self.crop_bottom), (0, 255, 0), 2)
+        
 
         img = img[self.crop_top:self.crop_bottom, self.crop_left:self.crop_right]
         frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -266,6 +272,7 @@ class LineFollowerCamera():
             try:
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])+self.crop_top
+                error = cx-self.middle_point
             except:
                 print("Centroid error")
 
@@ -273,12 +280,24 @@ class LineFollowerCamera():
                 cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
                 cv2.line(oryginal, (cx, self.crop_top), (cx, self.crop_bottom), (255, 0, 0), 1)
                 cv2.line(oryginal, (self.crop_left, cy), (self.crop_right, cy), (255, 0, 0), 1)
-                cv2.circle(oryginal, (cx, cy), 5, (0,255,0), 3)
-
-        return img, oryginal
+            
+            cv2.circle(oryginal, (cx, cy), 5, (0,255,0), 3)
+            cv2.line(oryginal, (cx,cy), (self.middle_point, cy), (0, 0, 255), 2)
+            cv2.putText(img=oryginal,
+                text=str(error),
+                org=(int((cx+self.middle_point)/2),cy-10),
+                fontFace=self.font_face,
+                fontScale=1,
+                color=(0,0,255),
+                thickness=1,
+                lineType=cv2.LINE_AA)
+        else:
+            cx = None
+        return img, oryginal, cx
 
 def nothing(x):
     pass    
+
 
 if __name__ == "__main__":
     camera = LineFollowerCamera(show_fps=True,
@@ -287,6 +306,8 @@ if __name__ == "__main__":
                                 crop_top = 200,
                                 crop_bottom = 340)
     camera.initialize_camera()
+    print("MIDDLE POINT: ", camera.return_middle_point())
+
     camera.open_new_window("ORYGINAL")
     camera.create_trackbar("ORYGINAL", "SHOW", 0,2)
     camera.create_trackbar("ORYGINAL", "THRESH", 1, 255)
@@ -297,12 +318,14 @@ if __name__ == "__main__":
             frame = camera.read_frame()
             TB_SHOW = cv2.getTrackbarPos('SHOW', 'ORYGINAL')
             TB_THRESH = cv2.getTrackbarPos('THRESH', 'ORYGINAL')
-            binary, oryginal  = camera.extract_line(frame, TB_THRESH, TB_SHOW)
-            if TB_SHOW == 0:
-                camera.show_image("ORYGINAL",oryginal)
-
-            camera.show_image("LINE EXTRACTION",binary)
+            binary, oryginal, cx  = camera.extract_line(frame, TB_THRESH, TB_SHOW)
             
+            if TB_SHOW == 0:
+                camera.show_image("LINE EXTRACTION",binary)
+
+
+            camera.show_image("ORYGINAL",oryginal)
+
             keyCode = cv2.waitKey(5) & 0xFF
             # Stop the program on the ESC key
             if keyCode == 27:
@@ -313,11 +336,3 @@ if __name__ == "__main__":
     camera.close_camera()
     exit()
 
-
-    #     camera.show_image("EXAMPLE", camera.read_frame())
-    #     keyCode = cv2.waitKey(5) & 0xFF
-    #     # Stop the program on the ESC key
-    #     if keyCode == 27:
-    #         break
-    # camera.close_camera()
-    # exit()

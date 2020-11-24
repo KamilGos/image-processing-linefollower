@@ -58,14 +58,12 @@ class Tilt:
 
     # input: [-15; 15]
     def setTilt(self, tilt):
-        if -15<=tilt<=15:
-            try:
-                self.servo.angle = 88+tilt
-            except:
-                print("Servo set angle error")
-        else:
-            raise Exception("Tilt should be in [-15; 15] range")
-
+        if tilt > 15: 
+            tilt = 15
+        elif tilt < -15:
+            tilt = -15
+        self.servo.angle = 88+tilt
+            
 
 
 def debug(Motors, Tilt, option=1):
@@ -96,7 +94,7 @@ if __name__ == "__main__":
     Motors  = Motors()
     Tilt = Tilt()  
     print("Start debugging...")
-    if debug(Motors, Tilt, 1):
+    if debug(Motors, Tilt, 2):
         print("Done")
     else:
         print("Something wrong during debug")
