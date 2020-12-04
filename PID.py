@@ -14,7 +14,11 @@ class PID():
         self.prev_error = 0
         self.control = 0
         print("PID Initialized...")
+        self.ready = True
         print("SET POINT: ", self.set_point)
+
+    def return_state(self):
+        return self.ready
 
     def update_factors(self, KP, KI, KD):
         self.KP = KP
@@ -22,7 +26,7 @@ class PID():
         self.KD = KD
 
     def print_factors(self):
-        print("KP: {} \nKI: {} \nKD: {}".format(self.KP, self.KI, self.KD))
+        print("\n\nKP: {} \nKI: {} \nKD: {}".format(self.KP, self.KI, self.KD))
 
     def calcualte_PID(self, possition):
         self.error = possition - self.set_point
@@ -38,6 +42,7 @@ class PID():
 if __name__=="__main__":
     PID = PID(10)
     PID.print_factors()
+    print("READY: ", PID.return_state())
 
     for i in range(0, 11):
         PID.calcualte_PID(i)

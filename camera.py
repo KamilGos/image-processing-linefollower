@@ -10,7 +10,6 @@
 # Let's use a repeating Timer for counting FPS
 import cv2 as cv2
 import threading
-from numpy import full, uint8
 
 class RepeatTimer(threading.Timer):
     def run(self):
@@ -142,7 +141,6 @@ class CSI_Camera:
             )
         )
 
-# Private class
 # Author: Kamil Goś
 
 class LineFollowerCamera():
@@ -162,6 +160,7 @@ class LineFollowerCamera():
         self.font_face = cv2.FONT_HERSHEY_SIMPLEX
         self.font_scale = 0.5
         self.font_color = (255,255,255)
+        self.ready = True
 
     # Initialize camera
     def initialize_camera(self):
@@ -183,7 +182,11 @@ class LineFollowerCamera():
             print("Unable to open any cameras")
             SystemExit(0)
         else:
+            self.ready = True
             print("Camera ready...")
+
+    def return_state(self):
+        return self.ready
 
     def return_middle_point(self):
         return self.middle_point
@@ -252,7 +255,7 @@ class LineFollowerCamera():
             self.plot_fps(frame)
         return frame
 
-    def extract_line(self, img, TB_THRESH, TB_SHOW):
+    def extract_line(self, img, TB_SHOW, TB_T_L, TB_T_U):
         oryginal = img.copy()
         cv2.line(oryginal, (self.crop_left, self.crop_top), (self.crop_right, self.crop_top), (0, 0, 255), 1)
         cv2.line(oryginal, (self.crop_left, self.crop_bottom), (self.crop_right, self.crop_bottom), (0, 0, 255), 1)
@@ -261,9 +264,12 @@ class LineFollowerCamera():
 
         img = img[self.crop_top:self.crop_bottom, self.crop_left:self.crop_right]
         frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        frame = cv2.GaussianBlur(frame, (5,5), 0)
-        _, frame = cv2.threshold(frame, 105, 255, cv2.THRESH_BINARY_INV)
-
+        frame = cv2.GaussianBlur(frame, (11,11), 0)
+        # _, frame = cv2.threshold(frame, TB_THRESH, 255, cv2.THRESH_BINARY_INV)
+        frame = cv2.inRange(frame, TB_T_L, TB_T_U)
+        frame = cv2.erode(frame, None, iterations=3)
+        frame = cv2.dilate(frame, None, iterations=3)
+        frame = cv2.bitwise_not(frame)
         contours, hierarchy = cv2.findContours(frame, 1, cv2.CHAIN_APPROX_SIMPLE)
         
         if len(contours) > 0:
@@ -274,26 +280,28 @@ class LineFollowerCamera():
                 cy = int(M['m01']/M['m00'])+self.crop_top
                 error = cx-self.middle_point
             except:
+                cx = None
                 print("Centroid error")
-
-            if TB_SHOW == 0:
-                cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
-                cv2.line(oryginal, (cx, self.crop_top), (cx, self.crop_bottom), (255, 0, 0), 1)
-                cv2.line(oryginal, (self.crop_left, cy), (self.crop_right, cy), (255, 0, 0), 1)
             
-            cv2.circle(oryginal, (cx, cy), 5, (0,255,0), 3)
-            cv2.line(oryginal, (cx,cy), (self.middle_point, cy), (0, 0, 255), 2)
-            cv2.putText(img=oryginal,
-                text=str(error),
-                org=(int((cx+self.middle_point)/2),cy-10),
-                fontFace=self.font_face,
-                fontScale=1,
-                color=(0,0,255),
-                thickness=1,
-                lineType=cv2.LINE_AA)
+            if cx != None:
+                if TB_SHOW == 0:
+                    cv2.drawContours(img, contours, -1, (0, 255, 0), 1)
+                    cv2.line(oryginal, (cx, self.crop_top), (cx, self.crop_bottom), (255, 0, 0), 1)
+                    cv2.line(oryginal, (self.crop_left, cy), (self.crop_right, cy), (255, 0, 0), 1)
+            
+                cv2.circle(oryginal, (cx, cy), 5, (0,255,0), 3)
+                cv2.line(oryginal, (cx,cy), (self.middle_point, cy), (0, 0, 255), 2)
+                cv2.putText(img=oryginal,
+                    text=str(error),
+                    org=(int((cx+self.middle_point)/2),cy-10),
+                    fontFace=self.font_face,
+                    fontScale=1,
+                    color=(0,0,255),
+                    thickness=1,
+                    lineType=cv2.LINE_AA)
         else:
             cx = None
-        return img, oryginal, cx
+        return frame, img, oryginal, cx
 
 def nothing(x):
     pass    
@@ -306,23 +314,32 @@ if __name__ == "__main__":
                                 crop_top = 200,
                                 crop_bottom = 340)
     camera.initialize_camera()
+    print("STATE: ", camera.return_state())
     print("MIDDLE POINT: ", camera.return_middle_point())
 
     camera.open_new_window("ORYGINAL")
+    cv2.moveWindow("ORYGINAL", 100,100)
     camera.create_trackbar("ORYGINAL", "SHOW", 0,2)
-    camera.create_trackbar("ORYGINAL", "THRESH", 1, 255)
+    camera.create_trackbar("ORYGINAL", "LOWER", 1, 255)
+    camera.create_trackbar("ORYGINAL", "UPPER", 1, 255)
     
     camera.open_new_window("LINE EXTRACTION")
+    cv2.moveWindow("LINE EXTRACTION", 750,100)
+
+    camera.open_new_window("FEATURE EXTRACTION")
+    cv2.moveWindow("FEATURE EXTRACTION", 750,300)
+
     while True:
         try:
             frame = camera.read_frame()
             TB_SHOW = cv2.getTrackbarPos('SHOW', 'ORYGINAL')
-            TB_THRESH = cv2.getTrackbarPos('THRESH', 'ORYGINAL')
-            binary, oryginal, cx  = camera.extract_line(frame, TB_THRESH, TB_SHOW)
+            TB_T_L = cv2.getTrackbarPos('LOWER', 'ORYGINAL')
+            TB_T_U = cv2.getTrackbarPos('UPPER', 'ORYGINAL')
+            binary, features, oryginal, cx  = camera.extract_line(frame, TB_SHOW, TB_T_L, TB_T_U)
             
             if TB_SHOW == 0:
                 camera.show_image("LINE EXTRACTION",binary)
-
+                camera.show_image("FEATURE EXTRACTION", features)
 
             camera.show_image("ORYGINAL",oryginal)
 

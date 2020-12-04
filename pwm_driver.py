@@ -18,7 +18,11 @@ class Motors:
         self.eRF.duty_cycle = 0
         self.eLB.duty_cycle = 0
         self.eLF.duty_cycle = 0
+        self.state = True
         print("Engines ready")
+
+    def return_state(self):
+        return self.state
 
     def changeFrequency(self, new_freq):
         if 1<=new_freq<=1600:
@@ -54,16 +58,21 @@ class Tilt:
         i2c_bus0 = (busio.I2C(board.SCL_1, board.SDA_1))
         self.kit = ServoKit(channels=16, i2c=i2c_bus0, address=0x40)
         self.servo = self.kit.servo[0]
+        self.ready = True
         print("Tilt ready")
 
+    def return_state(self):
+        return self.ready
+
     # input: [-15; 15]
-    def setTilt(self, tilt):
-        if tilt > 15: 
-            tilt = 15
-        elif tilt < -15:
-            tilt = -15
-        self.servo.angle = 88+tilt
-            
+    def setTilt(self, control):
+        if control > 15: 
+            control = 15
+        if control < -15:
+            control = -15
+        angle = 88 + control
+        self.servo.angle = angle
+        return angle
 
 
 def debug(Motors, Tilt, option=1):
@@ -89,10 +98,12 @@ def debug(Motors, Tilt, option=1):
             time.sleep(1)
             Tilt.setTilt(0)
             time.sleep(1)
+    return True
 
 if __name__ == "__main__":
     Motors  = Motors()
     Tilt = Tilt()  
+    print("STATE: ", Tilt.return_state())
     print("Start debugging...")
     if debug(Motors, Tilt, 2):
         print("Done")
