@@ -30,7 +30,7 @@ if __name__=="__main__":
         cam.create_trackbar("ORYGINAL", "UPPER", 1, 255)
         # cam.create_trackbar("ORYGINAL", "THRESH", 1, 255)
         cam.create_trackbar("ORYGINAL", "KP", 0, 1000)
-        cam.create_trackbar("ORYGINAL", "KI", 0, 100)
+        # cam.create_trackbar("ORYGINAL", "KI", 0, 100)
         cam.create_trackbar("ORYGINAL", "KD", 0, 1000)
         cam.create_trackbar("ORYGINAL", "MOTORS", 0, 30000)
 
@@ -61,11 +61,11 @@ if __name__=="__main__":
 
 
                 TB_KP = cv2.getTrackbarPos('KP', 'ORYGINAL')/1000
-                TB_KI = cv2.getTrackbarPos('KI', 'ORYGINAL')/1000
+                # TB_KI = cv2.getTrackbarPos('KI', 'ORYGINAL')/1000
                 TB_KD = cv2.getTrackbarPos('KD', 'ORYGINAL')/100
                 TB_MOTORS = cv2.getTrackbarPos("MOTORS", "ORYGINAL")
 
-                pid.update_factors(KP=TB_KP, KI=TB_KI, KD=TB_KD)
+                pid.update_factors(KP=TB_KP, KI=0, KD=TB_KD)
                 pid.print_factors()
 
                 if possition != None:
