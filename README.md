@@ -30,7 +30,13 @@ The project involved developing a line tracking algorithm based on image process
 
 The project was a success. Image processing algorithms, regulator algorithms, as well as atest platform, were prepared and robot successfully followed the line. The whole system wasimplemented independently using both raw Python language and ROS. The system has beensuccessfully tested. There was also no discrepancy between the two implementations (Pythonand ROS).
 
-<h2> You can wath the results here: </h2>
+
+<div align="center" id="top"> 
+  <img src=images/video.gif width="600" />
+  &#xa0;
+</div>
+
+<h2> You can wath the original videos here: </h2>
 
 <div align="center">
   <a href="https://www.youtube.com/watch?v=YFPQv9tbDRQ"><img src="https://www.youtube.com/watch?v=YFPQv9tbDRQ/0.jpg" alt="Test 1"></a>
